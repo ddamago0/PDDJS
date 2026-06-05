@@ -1,5 +1,5 @@
 import { reservationApi } from '../api/reservations.api';
-
+export const getReservations = () => http.get('/reservations');
 export const reservationService = {
   getAll: () => reservationApi.getAll(),
   getById: (id) => reservationApi.getById(id),

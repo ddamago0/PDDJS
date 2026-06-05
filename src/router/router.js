@@ -2,8 +2,7 @@ import loginView from '../views/loginView.js';
 import homeView from '../views/homeView.js';
 import reservationsView from '../views/reservationsView.js';
 import { isAuthenticated, isAdmin, navigateTo } from '../utils.js';
-import { initReservationsPage } from '../controllers/reservation.controller.js';
-import { homeController } from '../controllers/home.controller.js';
+import notFoundView from '@/views/notFound';
 
 const routes = {
   '/': loginView,
@@ -11,23 +10,15 @@ const routes = {
   '/reservations': reservationsView,
 };
 
-export const router = async () => {
+export const router = () => {
   const app = document.querySelector('#app');
-  const path = window.location.pathname;
-
-  if (!isAuthenticated() && !['/', '/home'].includes(path)) {
+  let path = window.location.pathname;
+  if (path === '/home' && !isAuthenticated()) {
     navigateTo('/');
     return;
   }
-
-  const view = routes[path] || loginView;
+  const view = routes[path] || notFoundView;
   app.innerHTML = view();
-
-  if (path === '/home') {
-    homeController();
-  } else if (path === '/reservations') {
-    initReservationsPage();
-  }
 };
 
 window.addEventListener('popstate', router);
