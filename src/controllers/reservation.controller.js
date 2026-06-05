@@ -1,74 +1,63 @@
-import { getSession, isAdmin } from '../utils.js';
-import { reservationService } from '../services/reservation.service.js';
-
-export const reservationController = {
-  getReservations: async () => {
-    const user = getSession();
-    const data = await reservationService.getAll();
-    return isAdmin() ? data : data.filter((r) => r.userId === user?.id);
-  },
-
-  createReservation: async (data) => {
-    const user = getSession();
-    const newRes = {
-      ...data,
-      userId: user?.id,
-      status: 'pending',
-    };
-
-    const existing = await reservationService.getAll();
-    const conflict = existing.some(
-      (r) =>
-        r.workspaceId === newRes.workspaceId &&
-        r.date === newRes.date &&
-        r.startHour < newRes.endHour &&
-        r.endHour > newRes.startHour
-    );
-    if (conflict) throw new Error('Ya existe una reserva en este horario');
-
-    return reservationService.create(newRes);
-  },
-
-  updateReservation: async (id, data) => {
-    const user = getSession();
-    const res = await reservationService.getById(id);
-
-    if (res.userId !== user?.id) throw new Error('No tienes permiso');
-    if (res.status !== 'pending')
-      throw new Error('Solo se pueden modificar reservas pendientes');
-
-    return reservationService.update(id, data);
-  },
-
-  deleteReservation: async (id) => {
-    const user = getSession();
-    const res = await reservationService.getById(id);
-
-    if (res.status === 'approved')
-      throw new Error('No se pueden eliminar reservas aprobadas');
-    if (res.userId !== user?.id) throw new Error('No tienes permiso');
-
-    return reservationService.delete(id);
-  },
-
-  approveReservation: async (id) => {
-    if (!isAdmin()) throw new Error('Acceso denegado');
-    return reservationService.update(id, { status: 'approved' });
-  },
-
-  rejectReservation: async (id) => {
-    if (!isAdmin()) throw new Error('Acceso denegado');
-    return reservationService.update(id, { status: 'rejected' });
-  },
-};
 export const initReservationsPage = async () => {
+  const formContainer = document.querySelector('#formContainer');
   const container = document.querySelector('#reservationsContainer');
+
   if (!container) return;
+
+  if (formContainer) {
+    formContainer.innerHTML = `
+      <div class="bg-slate-900 p-6 rounded-xl max-w-3xl border border-slate-700">
+        <h2 class="text-xl font-bold mb-4 text-indigo-400">Crear Nueva Reserva</h2>
+        <form id="reservationForm" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div>
+            <label class="block text-sm text-slate-400 mb-1">ID del Espacio</label>
+            <input name="workspaceId" type="text" required class="w-full bg-slate-800 p-2 rounded border border-slate-700 text-white" placeholder="Ej: Mesa-01">
+          </div>
+          <div>
+            <label class="block text-sm text-slate-400 mb-1">Fecha</label>
+            <input name="date" type="date" required class="w-full bg-slate-800 p-2 rounded border border-slate-700 text-white">
+          </div>
+          <div>
+            <label class="block text-sm text-slate-400 mb-1">Hora Inicio</label>
+            <input name="startHour" type="text" required class="w-full bg-slate-800 p-2 rounded border border-slate-700 text-white" placeholder="Ej: 08:00">
+          </div>
+          <div>
+            <label class="block text-sm text-slate-400 mb-1">Hora Fin</label>
+            <input name="endHour" type="text" required class="w-full bg-slate-800 p-2 rounded border border-slate-700 text-white" placeholder="Ej: 10:00">
+          </div>
+          <div class="md:col-span-4">
+            <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded font-bold transition cursor-pointer">
+              Confirmar y Guardar Reserva
+            </button>
+          </div>
+        </form>
+      </div>
+    `;
+
+    const form = document.querySelector('#reservationForm');
+    form?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = {
+        workspaceId: form.workspaceId.value.trim(),
+        date: form.date.value,
+        startHour: form.startHour.value.trim(),
+        endHour: form.endHour.value.trim(),
+      };
+
+      try {
+        await reservationController.createReservation(formData);
+        alert(' ¡Reserva creada exitosamente!');
+        form.reset();
+        loadCards();
+      } catch (err) {
+        alert(` Error: ${err.message}`);
+      }
+    });
+  }
 
   const loadCards = async () => {
     try {
       const user = getSession();
-
       const reservations = await reservationController.getReservations();
 
       if (!reservations || reservations.length === 0) {
@@ -85,7 +74,7 @@ export const initReservationsPage = async () => {
         <div class="bg-slate-900 p-6 rounded-xl shadow border border-slate-700">
           <div class="flex justify-between items-start mb-2">
             <h3 class="font-bold text-xl text-indigo-400">Mesa: ${
-              r.workspaceId
+              r.workspaceId || r.workspace || 'No asignado'
             }</h3>
             <span class="px-2 py-1 rounded text-xs font-bold ${
               r.status === 'approved'
@@ -103,6 +92,7 @@ export const initReservationsPage = async () => {
           } - ${r.endHour}</p>
           
           <div class="flex gap-2 mt-4">
+            <!-- Acciones del Administrador -->
             ${
               r.status === 'pending' && isAdmin()
                 ? `
@@ -111,10 +101,12 @@ export const initReservationsPage = async () => {
             `
                 : ''
             }
+            
+            <!-- Acciones de ELIMINAR / CANCELAR -->
             ${
-              r.userId === user?.id && r.status === 'pending'
+              r.status === 'pending' || isAdmin()
                 ? `
-              <button data-action="cancel" data-id="${r.id}" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded text-sm font-semibold cursor-pointer flex-1">Cancelar</button>
+              <button data-action="delete" data-id="${r.id}" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded text-sm font-semibold cursor-pointer flex-1">Eliminar</button>
             `
                 : ''
             }
@@ -124,10 +116,7 @@ export const initReservationsPage = async () => {
         )
         .join('');
     } catch (err) {
-      container.innerHTML = `
-        <div class="col-span-full text-center py-8">
-          <p class="text-red-400">Error al renderizar los datos: ${err.message}</p>
-        </div>`;
+      container.innerHTML = `<div class="col-span-full text-center py-8"><p class="text-red-400">Error: ${err.message}</p></div>`;
     }
   };
 
@@ -144,16 +133,20 @@ export const initReservationsPage = async () => {
         alert('Reserva aprobada exitosamente');
       } else if (action === 'reject') {
         await reservationController.rejectReservation(id);
-        alert('Reserva rechazada de forma correcta');
-      } else if (action === 'cancel') {
-        if (confirm('¿Estás seguro de que deseas dar de baja esta reserva?')) {
+        alert('Reserva rechazada');
+      } else if (action === 'delete') {
+        if (
+          confirm(
+            '¿Estás completamente seguro de que deseas eliminar esta reserva?'
+          )
+        ) {
           await reservationController.deleteReservation(id);
-          alert('Reserva cancelada exitosamente');
+          alert('🗑️ Reserva eliminada con éxito');
         } else return;
       }
       loadCards();
     } catch (err) {
-      alert(err.message);
+      alert(`Operación rechazada: ${err.message}`);
     }
   });
 
