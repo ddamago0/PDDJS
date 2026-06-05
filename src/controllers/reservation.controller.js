@@ -4,6 +4,7 @@ export const initReservationsPage = async () => {
 
   if (!container) return;
 
+  // 📝 A. INYECTAR EL FORMULARIO DE CREACIÓN
   if (formContainer) {
     formContainer.innerHTML = `
       <div class="bg-slate-900 p-6 rounded-xl max-w-3xl border border-slate-700">
@@ -34,6 +35,7 @@ export const initReservationsPage = async () => {
       </div>
     `;
 
+    // Escuchar el envío del formulario para CREAR
     const form = document.querySelector('#reservationForm');
     form?.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -45,6 +47,7 @@ export const initReservationsPage = async () => {
       };
 
       try {
+        // Ejecuta tu método createReservation que valida los choques de horario
         await reservationController.createReservation(formData);
         alert(' ¡Reserva creada exitosamente!');
         form.reset();
@@ -141,7 +144,7 @@ export const initReservationsPage = async () => {
           )
         ) {
           await reservationController.deleteReservation(id);
-          alert('🗑️ Reserva eliminada con éxito');
+          alert(' Reserva eliminada con éxito');
         } else return;
       }
       loadCards();
