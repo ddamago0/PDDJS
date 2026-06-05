@@ -27,7 +27,7 @@ export default function loginView() {
             type="password"
             name="password"
             placeholder="Contraseña"
-            type="text" autocomplete="give-password"
+            autocomplete="current-password"
             class="border w-full p-2 rounded mb-4"
           >
 

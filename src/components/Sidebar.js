@@ -4,18 +4,9 @@ export function Sidebar() {
   setTimeout(() => {
     document.querySelector('#logoutBtn')?.addEventListener('click', () => {
       removeSession();
+
       navigateTo('/');
     });
-    setTimeout(() => {
-      const btn = document.querySelector('#logoutBtn');
-      if (btn) {
-        btn.replaceWith(btn.cloneNode(true));
-        document.querySelector('#logoutBtn').addEventListener('click', () => {
-          removeSession();
-          navigateTo('/');
-        });
-      }
-    }, 0);
   });
 
   return `

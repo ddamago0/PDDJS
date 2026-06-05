@@ -1,3 +1,6 @@
+import { reservationService } from '../services/reservation.service.js';
+import { getSession, isAdmin } from '../utils.js';
+
 export const initReservationsPage = async () => {
   const formContainer = document.querySelector('#formContainer');
   const container = document.querySelector('#reservationsContainer');
@@ -40,10 +43,12 @@ export const initReservationsPage = async () => {
     form?.addEventListener('submit', async (e) => {
       e.preventDefault();
       const formData = {
-        workspaceId: form.workspaceId.value.trim(),
+        workspace: form.workspace.value.trim(),
         date: form.date.value,
         startHour: form.startHour.value.trim(),
         endHour: form.endHour.value.trim(),
+        userId: getSession()?.id,
+        status: 'pending',
       };
 
       try {
