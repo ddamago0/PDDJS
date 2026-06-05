@@ -290,3 +290,4 @@ Los coders deberán implementar:
 ## Nota para los coders
 
 Aunque esta guía está escrita en español para facilitar la comprensión del proyecto, el archivo README.md entregado como evidencia debe estar redactado completamente en inglés.
+# PDDJS
